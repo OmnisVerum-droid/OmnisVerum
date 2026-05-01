@@ -1,3 +1,5 @@
+![Omnisverum Logo](omnisverum-logo-v3.svg)
+
 # OmnisVerum
 A crowd-sourced, trust-weighted, near-omniscient knowledge platform.
 ## What is Omnisverum?
