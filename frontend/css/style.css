@@ -1,0 +1,316 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: #000000;
+    color: #ffffff;
+    font-family: Georgia, serif;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#app {
+    width: 100%;
+    max-width: 900px;
+    padding: 20px;
+}
+
+.hidden {
+    display: none;
+}
+
+/* Landing */
+#landing {
+    text-align: center;
+}
+
+.logo {
+    width: 200px;
+    margin-bottom: 20px;
+}
+
+.tagline {
+    font-size: 18px;
+    color: #888888;
+    margin-bottom: 40px;
+    letter-spacing: 2px;
+}
+
+.auth-buttons {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+}
+
+/* Buttons */
+button {
+    background: #111111;
+    color: #ffffff;
+    border: 1px solid #333333;
+    padding: 10px 24px;
+    cursor: pointer;
+    font-family: Georgia, serif;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+}
+
+button:hover {
+    background: #222222;
+    border-color: #ffffff;
+}
+
+/* Forms */
+input[type="text"],
+input[type="password"] {
+    width: 100%;
+    background: #111111;
+    border: 1px solid #333333;
+    color: #ffffff;
+    padding: 10px;
+    margin-bottom: 12px;
+    font-family: Georgia, serif;
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus {
+    outline: none;
+    border-color: #ffffff;
+}
+
+label {
+    display: block;
+    margin-bottom: 12px;
+    color: #888888;
+    font-size: 14px;
+}
+
+/* Register/Login */
+#register, #login {
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+#register h2, #login h2 {
+    margin-bottom: 24px;
+    letter-spacing: 3px;
+    text-align: center;
+}
+
+#register p, #login p {
+    text-align: center;
+    margin-top: 16px;
+    color: #555555;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+#register p:hover, #login p:hover {
+    color: #ffffff;
+}
+
+/* Nav */
+nav {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #222222;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+#user-info {
+    color: #555555;
+    font-size: 13px;
+    margin-right: auto;
+}
+
+/* Content */
+#main-content {
+    padding: 20px 0;
+}
+
+.server-card {
+    border: 1px solid #222222;
+    padding: 16px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.server-card:hover {
+    border-color: #555555;
+    background: #111111;
+}
+
+.upload-card {
+    border: 1px solid #1a1a1a;
+    padding: 14px;
+    margin-bottom: 10px;
+}
+
+.upload-card .author {
+    color: #555555;
+    font-size: 12px;
+    margin-bottom: 6px;
+}
+
+textarea {
+    width: 100%;
+    background: #111111;
+    border: 1px solid #333333;
+    color: #ffffff;
+    padding: 10px;
+    font-family: Georgia, serif;
+    resize: vertical;
+    min-height: 100px;
+    margin-bottom: 12px;
+}
+
+textarea:focus {
+    outline: none;
+    border-color: #ffffff;
+}
+
+.answer-box {
+    border: 1px solid #222222;
+    padding: 16px;
+    margin-top: 16px;
+    color: #cccccc;
+    line-height: 1.6;
+}
+
+.error {
+    color: #ff4444;
+    font-size: 13px;
+    margin-bottom: 12px;
+}
+
+.success {
+    color: #44ff44;
+    font-size: 13px;
+    margin-bottom: 12px;
+}
+
+.wiki-result {
+    border: 1px solid #222222;
+    padding: 16px;
+    margin-top: 16px;
+    line-height: 1.7;
+    color: #cccccc;
+}
+
+.wiki-result h3 {
+    color: #ffffff;
+    margin-bottom: 12px;
+    letter-spacing: 2px;
+}
+
+/* Mobile */
+@media (max-width: 600px) {
+    .logo {
+        width: 150px;
+    }
+
+    .tagline {
+        font-size: 14px;
+    }
+
+    .auth-buttons {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    nav {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    button {
+        width: 100%;
+    }
+
+    #register, #login {
+        width: 100%;
+        padding: 10px;
+    }
+}
+
+/* Modal */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.9);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal.hidden {
+    display: none;
+}
+
+.modal-content {
+    background: #111111;
+    border: 1px solid #333333;
+    padding: 30px;
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.modal-content h2 {
+    letter-spacing: 3px;
+    margin-bottom: 20px;
+}
+
+.modal-body p {
+    color: #888888;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.modal-body strong {
+    color: #ffffff;
+}
+
+.link {
+    color: #ffffff;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.password-wrap {
+    position: relative;
+    margin-bottom: 12px;
+}
+
+.password-wrap input {
+    width: 100%;
+    margin-bottom: 0;
+}
+
+.password-wrap span {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #555555;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: Georgia, serif;
+}
+
+.password-wrap span:hover {
+    color: #ffffff;
+}
