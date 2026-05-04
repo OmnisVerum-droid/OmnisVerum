@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, String, Integer, Boolean, Float
+from sqlalchemy import create_engine, Column, String, Integer, Boolean, Float, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
@@ -18,6 +18,13 @@ class User(Base):
     is_locked = Column(Boolean, default=False)
     age_confirmed = Column(Boolean, default=False)
     tos_agreed = Column(Boolean, default=False)
+
+class UserProfile(Base):
+    __tablename__ = "user_profiles"
+    user_id = Column(String, primary_key=True)
+    display_name = Column(String, nullable=False)
+    bio = Column(Text, default="")
+    is_anonymous = Column(Boolean, default=False)
 
 Base.metadata.create_all(bind=engine)
 

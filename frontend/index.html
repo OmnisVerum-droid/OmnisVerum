@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+    <div id="app-message" class="app-message hidden" role="status" aria-live="polite"></div>
     <div id="app">
 
         <!-- Front Page -->
@@ -15,6 +16,10 @@
         <img src="omnisverum-logo-v3.svg" alt="Omnisverum" class="frontpage-logo">
         <h1>OMNISVERUM</h1>
         <p class="frontpage-tagline">Upload truth. Ask anything. Trust the crowd.</p>
+        <p class="frontpage-description">
+            Omnisverum is a community-driven knowledge platform where people build servers, share trusted information,
+            and ask AI questions grounded in real uploads from their communities.
+        </p>
         <div class="frontpage-features">
             <div class="feature">📚 Knowledge Servers</div>
             <div class="feature">🤖 AI Answers</div>
@@ -73,6 +78,7 @@
                 <span id="user-info"></span>
                 <button onclick="showCreateServer()">Create Server</button>
                 <button onclick="showServers()">Browse Servers</button>
+                <button onclick="showProfile()">Profile</button>
                 <button onclick="showWiki()">Knowledge Base</button>
                 <button onclick="logout()">Logout</button>
             </nav>

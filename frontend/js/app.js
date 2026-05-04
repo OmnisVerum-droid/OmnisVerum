@@ -2,6 +2,26 @@ const API = "https://omnisverum.onrender.com";
 let currentUser = null;
 let currentServer = null;
 
+// --- APP FEEDBACK ---
+function showAppMessage(text, type = "info") {
+    const box = document.getElementById("app-message");
+    if (!box) return;
+    box.textContent = `Omnisverum: ${text}`;
+    box.classList.remove("hidden", "app-message-success", "app-message-error", "app-message-info");
+    box.classList.add(`app-message-${type}`);
+    clearTimeout(showAppMessage.timer);
+    showAppMessage.timer = setTimeout(() => box.classList.add("hidden"), 4200);
+}
+
+function escapeHtml(value) {
+    return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
 // --- NAVIGATION ---
 function showFrontpage() {
     hideAll();
@@ -42,7 +62,7 @@ function showDashboard() {
     if (dashboard) dashboard.classList.remove("hidden");
     const userInfo = document.getElementById("user-info");
     if (userInfo && currentUser) {
-        userInfo.textContent = `${currentUser.username} | Rep: ${currentUser.reputation} | ${currentUser.tier}`;
+        userInfo.textContent = `${currentUser.displayName || currentUser.username} | Rep: ${currentUser.reputation} | ${currentUser.tier}`;
     }
 }
 
@@ -57,7 +77,12 @@ function logout() {
     currentUser = null;
     currentServer = null;
     localStorage.removeItem('omnisverum_user');
-    showFrontpage();
+    if (document.getElementById("frontpage")) {
+        showFrontpage();
+    } else if (document.getElementById("landing")) {
+        showLanding();
+    }
+    showAppMessage("You have logged out.", "info");
 }
 
 // --- AUTH ---
@@ -91,16 +116,17 @@ async function register() {
     }
     if (hasError) return;
 
-    const res = await fetch(`${API}/register?username=${username}&password=${password}&age_confirmed=${ageConfirmed}&tos_agreed=${tosAgreed}`, {
+    const res = await fetch(`${API}/register?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&age_confirmed=${ageConfirmed}&tos_agreed=${tosAgreed}`, {
         method: "POST"
     });
     const data = await res.json();
     if (data.token) {
-        alert("Account created! Please login.");
+        showAppMessage("Account created. Please login to continue.", "success");
         showLogin();
     } else {
         regError.textContent = "⚠ " + (data.detail || "Registration failed");
         regError.classList.remove("hidden");
+        showAppMessage(data.detail || "Registration failed.", "error");
     }
 }
 
@@ -108,7 +134,7 @@ async function login() {
     const username = document.getElementById("login-username").value;
     const password = document.getElementById("login-password").value;
 
-    const res = await fetch(`${API}/login?username=${username}&password=${password}`, {
+    const res = await fetch(`${API}/login?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`, {
         method: "POST"
     });
     const data = await res.json();
@@ -117,6 +143,9 @@ async function login() {
         currentUser = {
             id: payload.sub,
             username: username,
+            displayName: data.display_name || username,
+            bio: data.bio || "",
+            isAnonymous: !!data.is_anonymous,
             token: data.token,
             reputation: data.reputation,
             tier: getTier(data.reputation)
@@ -124,8 +153,9 @@ async function login() {
         showDashboard();
         showServers();
         loginSuccess();
+        showAppMessage(`Welcome back, ${currentUser.displayName}.`, "success");
     } else {
-        alert(data.detail || "Login failed");
+        showAppMessage(data.detail || "Login failed.", "error");
     }
 }
 
@@ -188,10 +218,10 @@ async function createServer() {
     });
     const data = await res.json();
     if (data.server_id) {
-        alert("Server created!");
+        showAppMessage("Server created successfully.", "success");
         showServers();
     } else {
-        alert(data.detail || "Failed to create server");
+        showAppMessage(data.detail || "Failed to create server.", "error");
     }
 }
 
@@ -225,8 +255,9 @@ async function generateInvite() {
     const data = await res.json();
     if (data.invite_link) {
         prompt(`Copy your invite link (expires: ${data.expires}):`, data.invite_link);
+        showAppMessage("Invite link generated.", "success");
     } else {
-        alert(data.detail || "Failed to generate invite");
+        showAppMessage(data.detail || "Failed to generate invite.", "error");
     }
 }
 
@@ -267,10 +298,10 @@ async function uploadText() {
     });
     const data = await res.json();
     if (data.upload_id) {
-        alert("Uploaded successfully!");
+        showAppMessage("Upload posted successfully.", "success");
         showUploads();
     } else {
-        alert(data.detail || "Upload failed");
+        showAppMessage(data.detail || "Upload failed.", "error");
     }
 }
 
@@ -306,7 +337,79 @@ async function reportUpload(uploadId) {
         method: "POST"
     });
     const data = await res.json();
-    alert(data.message || data.detail);
+    showAppMessage(data.message || data.detail || "Report submitted.", "info");
+}
+
+// --- PROFILE ---
+async function showProfile() {
+    if (!currentUser) {
+        showAppMessage("Please login to manage your profile.", "error");
+        return;
+    }
+
+    let profile = {
+        username: currentUser.username,
+        display_name: currentUser.displayName || currentUser.username,
+        bio: currentUser.bio || "",
+        is_anonymous: !!currentUser.isAnonymous,
+        reputation: currentUser.reputation
+    };
+
+    try {
+        const res = await fetch(`${API}/profile?user_id=${currentUser.id}`);
+        const data = await res.json();
+        if (res.ok) profile = data;
+    } catch (_) {
+        // Keep local fallback profile when backend is temporarily unavailable.
+    }
+
+    document.getElementById("main-content").innerHTML = `
+        <h2 style="letter-spacing:3px;margin-bottom:20px;">YOUR PROFILE</h2>
+        <div class="profile-card">
+            <p><strong>Username:</strong> ${escapeHtml(profile.username)}</p>
+            <p><strong>Reputation:</strong> ${escapeHtml(profile.reputation)} (${escapeHtml(getTier(profile.reputation))})</p>
+            <label for="profile-display-name">Display Name</label>
+            <input type="text" id="profile-display-name" maxlength="40" value="${escapeHtml(profile.display_name)}" placeholder="How your name appears">
+            <label for="profile-bio">Bio</label>
+            <textarea id="profile-bio" maxlength="280" placeholder="Tell your community who you are...">${escapeHtml(profile.bio)}</textarea>
+            <label><input type="checkbox" id="profile-anonymous" ${profile.is_anonymous ? "checked" : ""}> Default to anonymous posting</label>
+            <div class="auth-buttons">
+                <button onclick="updateProfile()">Save Profile</button>
+                <button onclick="showServers()">Back to Servers</button>
+            </div>
+        </div>
+    `;
+}
+
+async function updateProfile() {
+    if (!currentUser) return;
+    const displayName = document.getElementById("profile-display-name").value.trim();
+    const bio = document.getElementById("profile-bio").value.trim();
+    const isAnonymous = document.getElementById("profile-anonymous").checked;
+
+    if (!displayName) {
+        showAppMessage("Display name cannot be empty.", "error");
+        return;
+    }
+
+    const res = await fetch(
+        `${API}/profile?user_id=${currentUser.id}&display_name=${encodeURIComponent(displayName)}&bio=${encodeURIComponent(bio)}&is_anonymous=${isAnonymous}`,
+        { method: "PUT" }
+    );
+    const data = await res.json();
+
+    if (!res.ok) {
+        showAppMessage(data.detail || "Failed to update profile.", "error");
+        return;
+    }
+
+    currentUser.displayName = displayName;
+    currentUser.bio = bio;
+    currentUser.isAnonymous = isAnonymous;
+    loginSuccess();
+    showDashboard();
+    showProfile();
+    showAppMessage("Profile updated successfully.", "success");
 }
 
 // --- WIKI ---
@@ -443,6 +546,7 @@ window.addEventListener('load', function() {
     const saved = localStorage.getItem('omnisverum_user');
     if (saved) {
         currentUser = JSON.parse(saved);
+        currentUser.displayName = currentUser.displayName || currentUser.username;
         showDashboard();
         showServers();
     }
