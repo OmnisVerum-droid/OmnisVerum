@@ -5,26 +5,31 @@ let currentServer = null;
 // --- NAVIGATION ---
 function showFrontpage() {
     hideAll();
+    window.scrollTo(0, 0);
     document.getElementById("frontpage").classList.remove("hidden");
 }
 
 function showLanding() {
     hideAll();
+    window.scrollTo(0, 0);
     document.getElementById("landing").classList.remove("hidden");
 }
 
 function showRegister() {
     hideAll();
+    window.scrollTo(0, 0);
     document.getElementById("register").classList.remove("hidden");
 }
 
 function showLogin() {
     hideAll();
+    window.scrollTo(0, 0);
     document.getElementById("login").classList.remove("hidden");
 }
 
 function showDashboard() {
     hideAll();
+    window.scrollTo(0, 0);
     document.getElementById("dashboard").classList.remove("hidden");
     document.getElementById("user-info").textContent = `${currentUser.username} | Rep: ${currentUser.reputation} | ${currentUser.tier}`;
 }
