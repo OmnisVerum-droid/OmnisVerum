@@ -4,19 +4,33 @@
     box-sizing: border-box;
 }
 
+html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    overflow-x: clip;
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+}
+
 body {
     background-color: #000000;
     color: #ffffff;
     font-family: Georgia, serif;
-    min-height: 100vh;
+    min-height: 100dvh;
     display: flex;
-    justify-content: center;
+    flex-direction: column;
     align-items: center;
+    justify-content: flex-start;
+    padding: max(12px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+        max(12px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
 }
 
 .app-message {
     position: fixed;
-    top: 16px;
+    top: max(16px, calc(env(safe-area-inset-top) + 8px));
     left: 50%;
     transform: translateX(-50%);
     z-index: 2000;
@@ -48,6 +62,7 @@ body {
 #app {
     width: 100%;
     max-width: 900px;
+    min-width: 0;
     padding: 20px;
 }
 
@@ -164,6 +179,9 @@ nav {
 /* Content */
 #main-content {
     padding: 20px 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .server-card {
@@ -240,36 +258,6 @@ textarea:focus {
     color: #ffffff;
     margin-bottom: 12px;
     letter-spacing: 2px;
-}
-
-/* Mobile */
-@media (max-width: 600px) {
-    .logo {
-        width: 150px;
-    }
-
-    .tagline {
-        font-size: 14px;
-    }
-
-    .auth-buttons {
-        flex-direction: column;
-        align-items: center;
-    }
-
-    nav {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    button {
-        width: 100%;
-    }
-
-    #register, #login {
-        width: 100%;
-        padding: 10px;
-    }
 }
 
 /* Modal */
@@ -350,9 +338,9 @@ textarea:focus {
 #info-chatbot {
     position: fixed;
     bottom: 20px;
-    right: 20px;
-    width: 350px;
-    max-height: 500px;
+    right: max(20px, env(safe-area-inset-right));
+    width: min(350px, calc(100vw - 32px - env(safe-area-inset-left) - env(safe-area-inset-right)));
+    max-height: min(500px, 70dvh);
     background: #111111;
     border: 1px solid #333333;
     border-radius: 8px;
@@ -369,6 +357,8 @@ textarea:focus {
     display: flex;
     flex-direction: column;
     height: 100%;
+    min-height: 0;
+    max-height: inherit;
 }
 
 .chatbot-header {
@@ -389,6 +379,8 @@ textarea:focus {
 .chatbot-messages {
     flex: 1;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    min-height: 0;
     padding: 12px;
     font-size: 12px;
 }
@@ -442,7 +434,9 @@ textarea:focus {
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: calc(100vh - 40px);
+    min-height: calc(100dvh - 48px);
+    width: 100%;
+    min-width: 0;
 }
 
 .frontpage-container {
@@ -574,14 +568,16 @@ body {
 }
 
 #app {
+    width: 100%;
     max-width: 1040px;
+    min-width: 0;
     padding: 22px;
 }
 
 .theme-toggle {
     position: fixed;
-    top: 14px;
-    right: 14px;
+    top: max(14px, calc(env(safe-area-inset-top) + 8px));
+    right: max(14px, calc(env(safe-area-inset-right) + 8px));
     z-index: 2500;
     border-radius: 999px;
     padding: 8px 14px;
@@ -671,8 +667,12 @@ label,
 
 nav {
     position: sticky;
-    top: 12px;
+    top: max(12px, env(safe-area-inset-top));
     z-index: 10;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
     background: color-mix(in oklab, var(--bg-elevated) 95%, transparent);
     border: 1px solid var(--border);
     border-radius: 14px;
@@ -724,4 +724,140 @@ select:focus {
 .chatbot-message.bot {
     background: var(--surface-2);
     color: var(--text);
+}
+
+/* Phones and narrow viewports (overrides theme block above) */
+@media (max-width: 720px) {
+    .logo {
+        width: min(150px, 42vw);
+    }
+
+    .tagline {
+        font-size: clamp(14px, 4vw, 18px);
+    }
+
+    #landing .auth-buttons {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    #landing .auth-buttons button {
+        width: 100%;
+        min-height: 44px;
+        touch-action: manipulation;
+    }
+
+    nav {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    nav #user-info {
+        margin-right: 0;
+        width: 100%;
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--border, #333);
+    }
+
+    nav button {
+        width: 100%;
+        min-height: 44px;
+        touch-action: manipulation;
+    }
+
+    #register,
+    #login {
+        width: 100%;
+        max-width: none;
+        padding: 22px 18px;
+    }
+
+    #register > button,
+    #login > button,
+    .modal-content > button {
+        width: 100%;
+        min-height: 44px;
+    }
+
+    .frontpage-btn {
+        width: 100%;
+        max-width: 360px;
+        margin-left: auto;
+        margin-right: auto;
+        min-height: 48px;
+    }
+
+    .frontpage-container {
+        padding: 28px 18px;
+    }
+
+    #frontpage h1 {
+        font-size: clamp(28px, 11vw, 52px);
+        letter-spacing: clamp(2px, 1.2vw, 8px);
+    }
+
+    .frontpage-tagline {
+        font-size: 14px;
+        letter-spacing: 1px;
+    }
+
+    .frontpage-features {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+
+    #info-chatbot {
+        left: max(12px, env(safe-area-inset-left));
+        right: max(12px, env(safe-area-inset-right));
+        width: auto;
+        max-height: min(62dvh, 520px);
+        bottom: max(12px, env(safe-area-inset-bottom));
+    }
+
+    .chatbot-input {
+        flex-wrap: nowrap;
+        align-items: stretch;
+    }
+
+    .chatbot-input input {
+        min-width: 0;
+        flex: 1;
+        font-size: 16px;
+    }
+
+    .chatbot-input button {
+        width: auto;
+        flex-shrink: 0;
+        min-height: 44px;
+        padding: 8px 14px;
+    }
+
+    input[type="text"],
+    input[type="password"],
+    textarea,
+    select {
+        font-size: 16px;
+    }
+
+    .modal-content {
+        padding: 22px 18px;
+        width: calc(100% - 28px);
+        max-height: min(85dvh, 900px);
+    }
+
+    #app {
+        padding: 16px 12px;
+    }
+
+    .theme-toggle {
+        max-width: calc(100vw - 28px - env(safe-area-inset-left) - env(safe-area-inset-right));
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .password-wrap span {
+        padding: 12px 10px;
+        right: 2px;
+    }
 }
