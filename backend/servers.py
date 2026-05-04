@@ -1,11 +1,17 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import Column, String, Boolean, Integer
-from sqlalchemy.orm import Session
-from database import get_db, Base
-import uuid
+import os
 import time
+import uuid
+
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import Boolean, Column, Integer, String
+from sqlalchemy.orm import Session
+
+from auth import get_current_user_id
+from database import Base, get_db
 
 router = APIRouter()
+
+INVITE_BASE_URL = os.getenv("OMNISVERUM_PUBLIC_URL", "https://omnisverum.onrender.com").rstrip("/")
 
 class Server(Base):
     __tablename__ = "servers"
@@ -31,7 +37,14 @@ class InviteLink(Base):
     is_active = Column(Boolean, default=True)
 
 @router.post("/servers/create")
-def create_server(name: str, description: str, is_public: bool, invite_only: bool = False, owner_id: str = "", db: Session = Depends(get_db)):
+def create_server(
+    name: str,
+    description: str,
+    is_public: bool,
+    invite_only: bool = False,
+    db: Session = Depends(get_db),
+    current_user_id: str = Depends(get_current_user_id),
+):
     existing = db.query(Server).filter(Server.name == name).first()
     if existing:
         raise HTTPException(status_code=400, detail="Server name taken")
@@ -39,7 +52,7 @@ def create_server(name: str, description: str, is_public: bool, invite_only: boo
         id=str(uuid.uuid4()),
         name=name,
         description=description,
-        owner_id=owner_id,
+        owner_id=current_user_id,
         is_public=is_public,
         invite_only=invite_only
     )
@@ -48,7 +61,7 @@ def create_server(name: str, description: str, is_public: bool, invite_only: boo
     return {"message": "Server created", "server_id": server.id}
 
 @router.post("/servers/join")
-def join_server(server_id: str, user_id: str, db: Session = Depends(get_db)):
+def join_server(server_id: str, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
     server = db.query(Server).filter(Server.id == server_id).first()
     if not server:
         raise HTTPException(status_code=404, detail="Server not found")
@@ -75,7 +88,12 @@ def list_servers(db: Session = Depends(get_db)):
     return servers
 
 @router.post("/servers/invite/create")
-def create_invite(server_id: str, user_id: str, expires_hours: int = None, db: Session = Depends(get_db)):
+def create_invite(
+    server_id: str,
+    user_id: str = Depends(get_current_user_id),
+    expires_hours: int = None,
+    db: Session = Depends(get_db),
+):
     server = db.query(Server).filter(Server.id == server_id).first()
     if not server:
         raise HTTPException(status_code=404, detail="Server not found")
@@ -95,12 +113,12 @@ def create_invite(server_id: str, user_id: str, expires_hours: int = None, db: S
     db.commit()
     expiry_text = f"{expires_hours} hours" if expires_hours else "Never"
     return {
-        "invite_link": f"https://omnisverum.onrender.com/servers/join/invite/{invite.id}",
-        "expires": expiry_text
+        "invite_link": f"{INVITE_BASE_URL}/servers/join/invite/{invite.id}",
+        "expires": expiry_text,
     }
 
 @router.get("/servers/join/invite/{invite_id}")
-def join_via_invite(invite_id: str, user_id: str, db: Session = Depends(get_db)):
+def join_via_invite(invite_id: str, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
     invite = db.query(InviteLink).filter(InviteLink.id == invite_id).first()
     if not invite:
         raise HTTPException(status_code=404, detail="Invalid invite link")

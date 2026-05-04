@@ -1,8 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import Column, String, Boolean
-from sqlalchemy.orm import Session
-from database import get_db, Base, User
 import uuid
+
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import Boolean, Column, String
+from sqlalchemy.orm import Session
+
+from auth import get_current_user_id, require_admin_key
+from database import Base, User, get_db
 
 router = APIRouter()
 
@@ -16,7 +19,12 @@ class Report(Base):
     action_taken = Column(String, nullable=True)
 
 @router.post("/report")
-def report_upload(reported_by: str, upload_id: str, reason: str, db: Session = Depends(get_db)):
+def report_upload(
+    upload_id: str,
+    reason: str,
+    reported_by: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
     user = db.query(User).filter(User.id == reported_by).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -37,12 +45,14 @@ def report_upload(reported_by: str, upload_id: str, reason: str, db: Session = D
     return {"message": "Report submitted successfully"}
 
 @router.get("/reports")
-def get_reports(db: Session = Depends(get_db)):
+def get_reports(admin_key: str, db: Session = Depends(get_db)):
+    require_admin_key(admin_key)
     reports = db.query(Report).filter(Report.is_resolved == False).all()
     return reports
 
 @router.post("/reports/resolve")
-def resolve_report(report_id: str, action_taken: str, db: Session = Depends(get_db)):
+def resolve_report(report_id: str, action_taken: str, admin_key: str, db: Session = Depends(get_db)):
+    require_admin_key(admin_key)
     report = db.query(Report).filter(Report.id == report_id).first()
     if not report:
         raise HTTPException(status_code=404, detail="Report not found")

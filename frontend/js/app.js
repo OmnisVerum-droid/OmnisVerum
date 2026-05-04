@@ -28,6 +28,56 @@ function escapeHtml(value) {
         .replace(/'/g, "&#39;");
 }
 
+function escapeHtmlWithBreaks(value) {
+    return escapeHtml(value).replace(/\n/g, "<br>");
+}
+
+async function readJsonResponse(res) {
+    const text = await res.text();
+    if (!text) return {};
+    try {
+        return JSON.parse(text);
+    } catch {
+        return { detail: text || res.statusText };
+    }
+}
+
+function formatApiDetail(detail) {
+    if (detail == null) return "";
+    if (typeof detail === "string") return detail;
+    if (Array.isArray(detail)) {
+        return detail.map(d => (d && typeof d === "object" && d.msg) ? d.msg : String(d)).join(" ");
+    }
+    return String(detail);
+}
+
+async function apiFetch(path, options = {}) {
+    const { auth = true, ...rest } = options;
+    const headers = { ...(rest.headers || {}) };
+    let body = rest.body;
+    if (body && typeof body === "object" && !(body instanceof FormData)) {
+        body = JSON.stringify(body);
+        headers["Content-Type"] = "application/json";
+    }
+    if (auth !== false && currentUser && currentUser.token) {
+        headers["Authorization"] = `Bearer ${currentUser.token}`;
+    }
+    const res = await fetch(`${API}${path}`, { ...rest, headers, body });
+    if (res.status === 401) {
+        localStorage.removeItem("omnisverum_user");
+        currentUser = null;
+        currentServer = null;
+        showAppMessage("Session expired. Please login again.", "error");
+        if (document.getElementById("landing")) {
+            showLanding();
+        } else if (document.getElementById("frontpage")) {
+            showFrontpage();
+        }
+        throw new Error("Unauthorized");
+    }
+    return res;
+}
+
 // --- THEMES ---
 function applyTheme(themeName) {
     const selected = THEMES.includes(themeName) ? themeName : "dark";
@@ -143,15 +193,22 @@ async function register() {
     }
     if (hasError) return;
 
-    const res = await fetch(`${API}/register?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&age_confirmed=${ageConfirmed}&tos_agreed=${tosAgreed}`, {
-        method: "POST"
+    const res = await apiFetch("/register", {
+        method: "POST",
+        auth: false,
+        body: {
+            username,
+            password,
+            age_confirmed: ageConfirmed,
+            tos_agreed: tosAgreed,
+        },
     });
-    const data = await res.json();
-    if (data.token) {
+    const data = await readJsonResponse(res);
+    if (res.ok && data.token) {
         showAppMessage("Account created. Please login to continue.", "success");
         showLogin();
     } else {
-        regError.textContent = "⚠ " + (data.detail || "Registration failed");
+        regError.textContent = "⚠ " + (formatApiDetail(data.detail) || "Registration failed");
         regError.classList.remove("hidden");
         showAppMessage(data.detail || "Registration failed.", "error");
     }
@@ -161,11 +218,13 @@ async function login() {
     const username = document.getElementById("login-username").value;
     const password = document.getElementById("login-password").value;
 
-    const res = await fetch(`${API}/login?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`, {
-        method: "POST"
+    const res = await apiFetch("/login", {
+        method: "POST",
+        auth: false,
+        body: { username, password },
     });
-    const data = await res.json();
-    if (data.token) {
+    const data = await readJsonResponse(res);
+    if (res.ok && data.token) {
         const payload = JSON.parse(atob(data.token.split(".")[1]));
         currentUser = {
             id: payload.sub,
@@ -182,7 +241,7 @@ async function login() {
         loginSuccess();
         showAppMessage(`Welcome back, ${currentUser.displayName}.`, "success");
     } else {
-        showAppMessage(data.detail || "Login failed.", "error");
+        showAppMessage(formatApiDetail(data.detail) || "Login failed.", "error");
     }
 }
 
@@ -198,17 +257,17 @@ function getTier(rep) {
 
 // --- SERVERS ---
 async function showServers() {
-    const res = await fetch(`${API}/servers`);
-    const servers = await res.json();
+    const res = await apiFetch("/servers", { auth: false });
+    const servers = await readJsonResponse(res);
     let html = `<h2 style="letter-spacing:3px;margin-bottom:20px;">PUBLIC SERVERS</h2>`;
     if (servers.length === 0) {
         html += `<p style="color:#555">No public servers yet.</p>`;
     }
     servers.forEach(s => {
         html += `
-        <div class="server-card" onclick="enterServer('${s.id}', '${s.name}')">
-            <strong>${s.name}</strong>
-            <p style="color:#555;font-size:13px;margin-top:6px;">${s.description}</p>
+        <div class="server-card" onclick="enterServer('${s.id}', ${JSON.stringify(s.name)})">
+            <strong>${escapeHtml(s.name)}</strong>
+            <p style="color:#555;font-size:13px;margin-top:6px;">${escapeHtml(s.description)}</p>
             ${s.invite_only ? '<span style="color:#555;font-size:11px;">🔒 Invite Only</span>' : ''}
         </div>`;
     });
@@ -240,10 +299,11 @@ async function createServer() {
     const isPublic = type === "public";
     const inviteOnly = type === "invite";
 
-    const res = await fetch(`${API}/servers/create?name=${name}&description=${desc}&is_public=${isPublic}&invite_only=${inviteOnly}&owner_id=${currentUser.id}`, {
-        method: "POST"
-    });
-    const data = await res.json();
+    const res = await apiFetch(
+        `/servers/create?name=${encodeURIComponent(name)}&description=${encodeURIComponent(desc)}&is_public=${isPublic}&invite_only=${inviteOnly}`,
+        { method: "POST" }
+    );
+    const data = await readJsonResponse(res);
     if (data.server_id) {
         showAppMessage("Server created successfully.", "success");
         showServers();
@@ -254,13 +314,23 @@ async function createServer() {
 
 async function enterServer(serverId, serverName) {
     currentServer = { id: serverId, name: serverName };
-    await fetch(`${API}/servers/join?server_id=${serverId}&user_id=${currentUser.id}`, { method: "POST" });
-    showServerPage();
+    const res = await apiFetch(`/servers/join?server_id=${encodeURIComponent(serverId)}`, { method: "POST" });
+    if (res.ok) {
+        showServerPage();
+        return;
+    }
+    const err = await readJsonResponse(res);
+    const detail = typeof err.detail === "string" ? err.detail : "";
+    if (res.status === 400 && detail.toLowerCase().includes("already")) {
+        showServerPage();
+        return;
+    }
+    showAppMessage(detail || "Could not join server.", "error");
 }
 
 function showServerPage() {
     document.getElementById("main-content").innerHTML = `
-        <h2 style="letter-spacing:3px;margin-bottom:20px;">${currentServer.name}</h2>
+        <h2 style="letter-spacing:3px;margin-bottom:20px;">${escapeHtml(currentServer.name)}</h2>
         <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
             <button onclick="showUploads()">Uploads</button>
             <button onclick="showAsk()">Ask AI</button>
@@ -276,10 +346,10 @@ function showServerPage() {
 // --- INVITE ---
 async function generateInvite() {
     const hours = prompt("Invite expiry in hours? (Leave blank for no expiry)");
-    let url = `${API}/servers/invite/create?server_id=${currentServer.id}&user_id=${currentUser.id}`;
-    if (hours) url += `&expires_hours=${hours}`;
-    const res = await fetch(url, { method: "POST" });
-    const data = await res.json();
+    let path = `/servers/invite/create?server_id=${encodeURIComponent(currentServer.id)}`;
+    if (hours) path += `&expires_hours=${encodeURIComponent(hours)}`;
+    const res = await apiFetch(path, { method: "POST" });
+    const data = await readJsonResponse(res);
     if (data.invite_link) {
         prompt(`Copy your invite link (expires: ${data.expires}):`, data.invite_link);
         showAppMessage("Invite link generated.", "success");
@@ -290,8 +360,8 @@ async function generateInvite() {
 
 // --- UPLOADS ---
 async function showUploads() {
-    const res = await fetch(`${API}/uploads/${currentServer.id}`);
-    const uploads = await res.json();
+    const res = await apiFetch(`/uploads/${encodeURIComponent(currentServer.id)}`, { auth: false });
+    const uploads = await readJsonResponse(res);
     let html = `<h3 style="letter-spacing:2px;margin-bottom:16px;">UPLOADS</h3>`;
     if (uploads.length === 0) {
         html += `<p style="color:#555">No uploads yet.</p>`;
@@ -299,8 +369,8 @@ async function showUploads() {
     uploads.forEach(u => {
         html += `
         <div class="upload-card">
-            <div class="author">${u.display_name} • ${u.timestamp}</div>
-            <div>${u.content}</div>
+            <div class="author">${escapeHtml(u.display_name)} • ${escapeHtml(u.timestamp)}</div>
+            <div>${escapeHtmlWithBreaks(u.content)}</div>
             <button onclick="reportUpload('${u.id}')" style="margin-top:8px;font-size:11px;padding:4px 10px;">Report</button>
         </div>`;
     });
@@ -320,10 +390,11 @@ async function uploadText() {
     const content = document.getElementById("upload-content").value;
     const isAnon = document.getElementById("upload-anon").checked;
 
-    const res = await fetch(`${API}/upload?server_id=${currentServer.id}&user_id=${currentUser.id}&content=${encodeURIComponent(content)}&is_anonymous=${isAnon}`, {
-        method: "POST"
-    });
-    const data = await res.json();
+    const res = await apiFetch(
+        `/upload?server_id=${encodeURIComponent(currentServer.id)}&content=${encodeURIComponent(content)}&is_anonymous=${isAnon}`,
+        { method: "POST" }
+    );
+    const data = await readJsonResponse(res);
     if (data.upload_id) {
         showAppMessage("Upload posted successfully.", "success");
         showUploads();
@@ -349,21 +420,24 @@ async function askAI() {
 
     document.getElementById("answer-box").innerHTML = `<div class="answer-box">Thinking...</div>`;
 
-    const res = await fetch(`${API}/ask?server_id=${currentServer.id}&question=${encodeURIComponent(question)}&want_other_sources=${wantSources}`, {
-        method: "POST"
-    });
-    const data = await res.json();
-    document.getElementById("answer-box").innerHTML = `<div class="answer-box">${data.answer}</div>`;
+    const res = await apiFetch(
+        `/ask?server_id=${encodeURIComponent(currentServer.id)}&question=${encodeURIComponent(question)}&want_other_sources=${wantSources}`,
+        { method: "POST" }
+    );
+    const data = await readJsonResponse(res);
+    const answer = res.ok && data.answer != null ? escapeHtmlWithBreaks(data.answer) : escapeHtml(data.detail || "Could not get an answer.");
+    document.getElementById("answer-box").innerHTML = `<div class="answer-box">${answer}</div>`;
 }
 
 // --- REPORT ---
 async function reportUpload(uploadId) {
     const reason = prompt("Why are you reporting this?");
     if (!reason) return;
-    const res = await fetch(`${API}/report?reported_by=${currentUser.id}&upload_id=${uploadId}&reason=${encodeURIComponent(reason)}`, {
-        method: "POST"
-    });
-    const data = await res.json();
+    const res = await apiFetch(
+        `/report?upload_id=${encodeURIComponent(uploadId)}&reason=${encodeURIComponent(reason)}`,
+        { method: "POST" }
+    );
+    const data = await readJsonResponse(res);
     showAppMessage(data.message || data.detail || "Report submitted.", "info");
 }
 
@@ -383,8 +457,8 @@ async function showProfile() {
     };
 
     try {
-        const res = await fetch(`${API}/profile?user_id=${currentUser.id}`);
-        const data = await res.json();
+        const res = await apiFetch("/profile");
+        const data = await readJsonResponse(res);
         if (res.ok) profile = data;
     } catch (_) {
         // Keep local fallback profile when backend is temporarily unavailable.
@@ -419,11 +493,15 @@ async function updateProfile() {
         return;
     }
 
-    const res = await fetch(
-        `${API}/profile?user_id=${currentUser.id}&display_name=${encodeURIComponent(displayName)}&bio=${encodeURIComponent(bio)}&is_anonymous=${isAnonymous}`,
-        { method: "PUT" }
-    );
-    const data = await res.json();
+    const res = await apiFetch("/profile", {
+        method: "PUT",
+        body: {
+            display_name: displayName,
+            bio,
+            is_anonymous: isAnonymous,
+        },
+    });
+    const data = await readJsonResponse(res);
 
     if (!res.ok) {
         showAppMessage(data.detail || "Failed to update profile.", "error");
@@ -452,14 +530,13 @@ function showWiki() {
 async function searchWiki() {
     const query = document.getElementById("wiki-query").value;
     document.getElementById("wiki-result").innerHTML = `<div class="wiki-result">Searching...</div>`;
-    const res = await fetch(`${API}/wiki?query=${encodeURIComponent(query)}`);
-    const data = await res.json();
-    document.getElementById("wiki-result").innerHTML = `
-        <div class="wiki-result">
-            <h3>${data.title}</h3>
-            <p>${data.summary}</p>
-        </div>
-    `;
+    const res = await apiFetch(`/wiki?query=${encodeURIComponent(query)}`, { auth: false });
+    const data = await readJsonResponse(res);
+    const err = data.error ? escapeHtml(String(data.error)) : "";
+    const body = err
+        ? `<p class="error">${err}</p>`
+        : `<h3>${escapeHtml(data.title)}</h3><p>${escapeHtmlWithBreaks(data.summary || "")}</p>`;
+    document.getElementById("wiki-result").innerHTML = `<div class="wiki-result">${body}</div>`;
 }
 
 // --- MODALS ---
@@ -550,12 +627,13 @@ function closeChatbot() {
 
 function askChatbot() {
     const input = document.getElementById("chatbot-question");
-    const question = input.value.toLowerCase().trim();
+    const raw = input.value.trim();
+    const question = raw.toLowerCase();
     if (!question) return;
 
     const messagesDiv = document.getElementById("chatbot-messages");
     
-    messagesDiv.innerHTML += `<div class="chatbot-message user">${question}</div>`;
+    messagesDiv.innerHTML += `<div class="chatbot-message user">${escapeHtml(raw)}</div>`;
     
     let answer = omnisInfo["default"];
     for (let key in omnisInfo) {
@@ -565,7 +643,7 @@ function askChatbot() {
         }
     }
     
-    messagesDiv.innerHTML += `<div class="chatbot-message bot">${answer}</div>`;
+    messagesDiv.innerHTML += `<div class="chatbot-message bot">${escapeHtml(answer)}</div>`;
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
     input.value = "";
 }

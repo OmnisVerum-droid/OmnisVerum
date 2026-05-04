@@ -1,9 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import Column, String, Float, Boolean
-from sqlalchemy.orm import Session
-from database import get_db, Base, User
-from reputation import get_tier, get_permissions
 import uuid
+
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import Boolean, Column, Float, String
+from sqlalchemy.orm import Session
+
+from auth import get_current_user_id
+from database import Base, User, get_db
+from reputation import get_permissions, get_tier
 
 router = APIRouter()
 
@@ -19,7 +22,13 @@ class Bounty(Base):
     is_expired = Column(Boolean, default=False)
 
 @router.post("/bounty/create")
-def create_bounty(server_id: str, user_id: str, question: str, reward: float, db: Session = Depends(get_db)):
+def create_bounty(
+    server_id: str,
+    question: str,
+    reward: float,
+    user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -43,7 +52,7 @@ def create_bounty(server_id: str, user_id: str, question: str, reward: float, db
     return {"message": "Bounty posted", "bounty_id": bounty.id}
 
 @router.post("/bounty/claim")
-def claim_bounty(bounty_id: str, user_id: str, db: Session = Depends(get_db)):
+def claim_bounty(bounty_id: str, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
     bounty = db.query(Bounty).filter(Bounty.id == bounty_id).first()
     if not bounty:
         raise HTTPException(status_code=404, detail="Bounty not found")
@@ -63,7 +72,7 @@ def claim_bounty(bounty_id: str, user_id: str, db: Session = Depends(get_db)):
     return {"message": "Bounty claimed", "reward": bounty.reward}
 
 @router.post("/bounty/expire")
-def expire_bounty(bounty_id: str, user_id: str, db: Session = Depends(get_db)):
+def expire_bounty(bounty_id: str, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
     bounty = db.query(Bounty).filter(Bounty.id == bounty_id).first()
     if not bounty:
         raise HTTPException(status_code=404, detail="Bounty not found")

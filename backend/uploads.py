@@ -1,9 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import Column, String, Boolean, DateTime
-from sqlalchemy.orm import Session
-from database import get_db, Base, User
-from datetime import datetime
 import uuid
+from datetime import datetime
+
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import Boolean, Column, String
+from sqlalchemy.orm import Session
+
+from auth import get_current_user_id
+from database import Base, User, get_db
 
 router = APIRouter()
 
@@ -19,7 +22,13 @@ class Upload(Base):
     timestamp = Column(String)
 
 @router.post("/upload")
-def upload_text(server_id: str, user_id: str, content: str, is_anonymous: bool, db: Session = Depends(get_db)):
+def upload_text(
+    server_id: str,
+    content: str,
+    is_anonymous: bool,
+    user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")

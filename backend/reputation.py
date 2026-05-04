@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from database import get_db, User
+
+from auth import get_current_user_id
+from database import User, get_db
 
 router = APIRouter()
 
@@ -96,7 +98,12 @@ def get_reputation(user_id: str, db: Session = Depends(get_db)):
     }
 
 @router.post("/vote")
-def vote(upload_id: str, voter_id: str, is_upvote: bool, db: Session = Depends(get_db)):
+def vote(
+    upload_id: str,
+    is_upvote: bool,
+    voter_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
     voter = db.query(User).filter(User.id == voter_id).first()
     if not voter:
         raise HTTPException(status_code=404, detail="Voter not found")

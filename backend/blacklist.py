@@ -1,8 +1,11 @@
+import uuid
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import Column, String
 from sqlalchemy.orm import Session
-from database import get_db, Base
-import uuid
+
+from auth import get_current_user_id
+from database import Base, get_db
 
 router = APIRouter()
 
@@ -20,7 +23,11 @@ class ServerBlacklist(Base):
     banned_by = Column(String)
 
 @router.post("/blacklist/personal/add")
-def personal_blacklist_add(owner_id: str, blocked_user_id: str, db: Session = Depends(get_db)):
+def personal_blacklist_add(
+    blocked_user_id: str,
+    owner_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
     if owner_id == blocked_user_id:
         raise HTTPException(status_code=400, detail="Cannot blacklist yourself")
     existing = db.query(PersonalBlacklist).filter(
@@ -39,7 +46,12 @@ def personal_blacklist_add(owner_id: str, blocked_user_id: str, db: Session = De
     return {"message": "User blacklisted personally"}
 
 @router.post("/blacklist/server/add")
-def server_blacklist_add(server_id: str, banned_by: str, blocked_user_id: str, db: Session = Depends(get_db)):
+def server_blacklist_add(
+    server_id: str,
+    blocked_user_id: str,
+    banned_by: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
     if banned_by == blocked_user_id:
         raise HTTPException(status_code=400, detail="Cannot blacklist yourself")
     existing = db.query(ServerBlacklist).filter(
@@ -59,7 +71,12 @@ def server_blacklist_add(server_id: str, banned_by: str, blocked_user_id: str, d
     return {"message": "User blacklisted from server"}
 
 @router.get("/blacklist/check")
-def check_blacklist(viewer_id: str, upload_owner_id: str, server_id: str, db: Session = Depends(get_db)):
+def check_blacklist(
+    upload_owner_id: str,
+    server_id: str,
+    viewer_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
     personal = db.query(PersonalBlacklist).filter(
         PersonalBlacklist.owner_id == upload_owner_id,
         PersonalBlacklist.blocked_user_id == viewer_id
@@ -82,7 +99,12 @@ class PostBlacklist(Base):
     owner_id = Column(String)
 
 @router.post("/blacklist/post/add")
-def post_blacklist_add(upload_id: str, owner_id: str, blocked_user_id: str, db: Session = Depends(get_db)):
+def post_blacklist_add(
+    upload_id: str,
+    blocked_user_id: str,
+    owner_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
     if owner_id == blocked_user_id:
         raise HTTPException(status_code=400, detail="Cannot blacklist yourself")
     existing = db.query(PostBlacklist).filter(
@@ -102,7 +124,11 @@ def post_blacklist_add(upload_id: str, owner_id: str, blocked_user_id: str, db: 
     return {"message": "User blacklisted from this post"}
 
 @router.get("/blacklist/post/check")
-def check_post_blacklist(upload_id: str, viewer_id: str, db: Session = Depends(get_db)):
+def check_post_blacklist(
+    upload_id: str,
+    viewer_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
     blocked = db.query(PostBlacklist).filter(
         PostBlacklist.upload_id == upload_id,
         PostBlacklist.blocked_user_id == viewer_id

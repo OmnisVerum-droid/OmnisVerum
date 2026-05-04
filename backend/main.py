@@ -1,25 +1,36 @@
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from database import Base, engine
-import auth
-import servers
-import uploads
+
+import admin
 import ai
-import reputation
+import auth
 import blacklist
 import bounty
-import reports
-import admin
 import news
+import reputation
+import reports
+import servers
+import uploads
+from database import Base, engine
 
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
+_cors = os.getenv("OMNISVERUM_CORS_ORIGINS", "").strip()
+if _cors:
+    _allow_origins = [o.strip() for o in _cors.split(",") if o.strip()]
+    _allow_credentials = True
+else:
+    _allow_origins = ["*"]
+    _allow_credentials = False
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=_allow_origins,
+    allow_credentials=_allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )
