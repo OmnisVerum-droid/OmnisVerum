@@ -3,10 +3,14 @@ let currentUser = null;
 let currentServer = null;
 
 // --- NAVIGATION ---
+function showFrontpage() {
+    hideAll();
+    document.getElementById("frontpage").classList.remove("hidden");
+}
+
 function showLanding() {
     hideAll();
     document.getElementById("landing").classList.remove("hidden");
-    document.getElementById("frontpage").classList.add("hidden");
 }
 
 function showRegister() {
@@ -26,7 +30,7 @@ function showDashboard() {
 }
 
 function hideAll() {
-    ["landing", "register", "login", "dashboard"].forEach(id => {
+    ["frontpage", "landing", "register", "login", "dashboard"].forEach(id => {
         document.getElementById(id).classList.add("hidden");
     });
 }
@@ -34,8 +38,8 @@ function hideAll() {
 function logout() {
     currentUser = null;
     currentServer = null;
-    showLanding();
     localStorage.removeItem('omnisverum_user');
+    showFrontpage();
 }
 
 // --- AUTH ---
@@ -346,7 +350,7 @@ document.addEventListener("DOMContentLoaded", function() {
         if (e.key === "Enter") login();
     });
 
-    showLanding();
+    showFrontpage();
 });
 
 const omnisInfo = {
