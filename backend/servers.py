@@ -1,144 +1,169 @@
-import os
-import time
 import uuid
-
+from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import Boolean, Column, Integer, String
 from sqlalchemy.orm import Session
 
+from database import Server, ServerMember, Invite, Upload, User, get_db
 from auth import get_current_user_id
-from database import Base, get_db
 
 router = APIRouter()
 
-INVITE_BASE_URL = os.getenv("OMNISVERUM_PUBLIC_URL", "https://omnisverum.onrender.com").rstrip("/")
-
-class Server(Base):
-    __tablename__ = "servers"
-    id = Column(String, primary_key=True)
-    name = Column(String, unique=True)
-    description = Column(String)
-    owner_id = Column(String)
-    is_public = Column(Boolean, default=False)
-    invite_only = Column(Boolean, default=False)
-
-class ServerMember(Base):
-    __tablename__ = "server_members"
-    id = Column(String, primary_key=True)
-    server_id = Column(String)
-    user_id = Column(String)
-
-class InviteLink(Base):
-    __tablename__ = "invite_links"
-    id = Column(String, primary_key=True)
-    server_id = Column(String)
-    created_by = Column(String)
-    expires_at = Column(Integer, nullable=True)
-    is_active = Column(Boolean, default=True)
 
 @router.post("/servers/create")
 def create_server(
     name: str,
     description: str,
-    is_public: bool,
+    is_public: bool = True,
     invite_only: bool = False,
+    user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
-    current_user_id: str = Depends(get_current_user_id),
 ):
-    existing = db.query(Server).filter(Server.name == name).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="Server name taken")
+    """Create a new server."""
+    if not name or not name.strip():
+        raise HTTPException(status_code=400, detail="Server name is required")
+    
     server = Server(
         id=str(uuid.uuid4()),
-        name=name,
-        description=description,
-        owner_id=current_user_id,
+        name=name.strip()[:100],
+        description=description.strip()[:500],
+        owner_id=user_id,
         is_public=is_public,
-        invite_only=invite_only
+        invite_only=invite_only,
     )
     db.add(server)
     db.commit()
-    return {"message": "Server created", "server_id": server.id}
-
-@router.post("/servers/join")
-def join_server(server_id: str, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
-    server = db.query(Server).filter(Server.id == server_id).first()
-    if not server:
-        raise HTTPException(status_code=404, detail="Server not found")
-    if server.invite_only:
-        raise HTTPException(status_code=403, detail="This server is invite only")
-    already_member = db.query(ServerMember).filter(
-        ServerMember.server_id == server_id,
-        ServerMember.user_id == user_id
-    ).first()
-    if already_member:
-        raise HTTPException(status_code=400, detail="Already a member")
+    
+    # Add owner as member
     member = ServerMember(
         id=str(uuid.uuid4()),
-        server_id=server_id,
-        user_id=user_id
+        server_id=server.id,
+        user_id=user_id,
     )
     db.add(member)
     db.commit()
-    return {"message": "Joined server"}
+    
+    return {"server_id": server.id, "name": server.name}
+
 
 @router.get("/servers")
 def list_servers(db: Session = Depends(get_db)):
+    """List all public servers."""
     servers = db.query(Server).filter(Server.is_public == True).all()
-    return servers
+    return [
+        {
+            "id": s.id,
+            "name": s.name,
+            "description": s.description,
+            "owner_id": s.owner_id,
+            "invite_only": s.invite_only,
+        }
+        for s in servers
+    ]
+
+
+@router.post("/servers/join")
+def join_server(
+    server_id: str,
+    user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
+    """Join a server."""
+    server = db.query(Server).filter(Server.id == server_id).first()
+    if not server:
+        raise HTTPException(status_code=404, detail="Server not found")
+    
+    # Check if user is already a member
+    existing = db.query(ServerMember).filter(
+        ServerMember.server_id == server_id,
+        ServerMember.user_id == user_id,
+    ).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Already a member of this server")
+    
+    # Add user as member
+    member = ServerMember(
+        id=str(uuid.uuid4()),
+        server_id=server_id,
+        user_id=user_id,
+    )
+    db.add(member)
+    db.commit()
+    
+    return {"message": "Successfully joined server"}
+
 
 @router.post("/servers/invite/create")
 def create_invite(
     server_id: str,
-    user_id: str = Depends(get_current_user_id),
     expires_hours: int = None,
+    user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ):
+    """Generate an invite link for a server."""
     server = db.query(Server).filter(Server.id == server_id).first()
     if not server:
         raise HTTPException(status_code=404, detail="Server not found")
+    
+    # Verify user is owner or admin
     if server.owner_id != user_id:
         raise HTTPException(status_code=403, detail="Only server owner can create invites")
+    
     expires_at = None
     if expires_hours:
-        expires_at = int(time.time()) + (expires_hours * 3600)
-    invite = InviteLink(
+        expires_at = datetime.utcnow() + timedelta(hours=expires_hours)
+    
+    invite = Invite(
         id=str(uuid.uuid4()),
         server_id=server_id,
         created_by=user_id,
         expires_at=expires_at,
-        is_active=True
     )
     db.add(invite)
     db.commit()
-    expiry_text = f"{expires_hours} hours" if expires_hours else "Never"
+    
+    invite_link = f"https://omnis-verum.vercel.app?invite={invite.id}"
+    expires_str = expires_at.strftime("%Y-%m-%d %H:%M UTC") if expires_at else "Never"
+    
     return {
-        "invite_link": f"{INVITE_BASE_URL}/servers/join/invite/{invite.id}",
-        "expires": expiry_text,
+        "invite_link": invite_link,
+        "invite_id": invite.id,
+        "expires": expires_str,
     }
 
-@router.get("/servers/join/invite/{invite_id}")
-def join_via_invite(invite_id: str, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
-    invite = db.query(InviteLink).filter(InviteLink.id == invite_id).first()
+
+@router.post("/servers/join-by-invite")
+def join_by_invite(
+    invite_id: str,
+    user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
+    """Join a server using an invite link."""
+    invite = db.query(Invite).filter(Invite.id == invite_id).first()
     if not invite:
-        raise HTTPException(status_code=404, detail="Invalid invite link")
-    if not invite.is_active:
-        raise HTTPException(status_code=400, detail="Invite link is no longer active")
-    if invite.expires_at and int(time.time()) > invite.expires_at:
-        invite.is_active = False
-        db.commit()
-        raise HTTPException(status_code=400, detail="Invite link has expired")
-    already_member = db.query(ServerMember).filter(
+        raise HTTPException(status_code=404, detail="Invalid invite")
+    
+    if invite.expires_at and invite.expires_at < datetime.utcnow():
+        raise HTTPException(status_code=400, detail="Invite has expired")
+    
+    server = db.query(Server).filter(Server.id == invite.server_id).first()
+    if not server:
+        raise HTTPException(status_code=404, detail="Server not found")
+    
+    # Check if already member
+    existing = db.query(ServerMember).filter(
         ServerMember.server_id == invite.server_id,
-        ServerMember.user_id == user_id
+        ServerMember.user_id == user_id,
     ).first()
-    if already_member:
+    if existing:
         raise HTTPException(status_code=400, detail="Already a member")
+    
+    # Add as member
     member = ServerMember(
         id=str(uuid.uuid4()),
         server_id=invite.server_id,
-        user_id=user_id
+        user_id=user_id,
     )
     db.add(member)
     db.commit()
-    return {"message": "Joined server via invite"}
+    
+    return {"message": "Joined server successfully", "server_id": server.id}
