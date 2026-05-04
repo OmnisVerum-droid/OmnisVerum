@@ -6,37 +6,50 @@ let currentServer = null;
 function showFrontpage() {
     hideAll();
     window.scrollTo(0, 0);
-    document.getElementById("frontpage").classList.remove("hidden");
+    const frontpage = document.getElementById("frontpage");
+    if (frontpage) frontpage.classList.remove("hidden");
+}
+
+function goToAuthPage() {
+    window.location.href = "auth.html";
 }
 
 function showLanding() {
     hideAll();
     window.scrollTo(0, 0);
-    document.getElementById("landing").classList.remove("hidden");
+    const landing = document.getElementById("landing");
+    if (landing) landing.classList.remove("hidden");
 }
 
 function showRegister() {
     hideAll();
     window.scrollTo(0, 0);
-    document.getElementById("register").classList.remove("hidden");
+    const register = document.getElementById("register");
+    if (register) register.classList.remove("hidden");
 }
 
 function showLogin() {
     hideAll();
     window.scrollTo(0, 0);
-    document.getElementById("login").classList.remove("hidden");
+    const login = document.getElementById("login");
+    if (login) login.classList.remove("hidden");
 }
 
 function showDashboard() {
     hideAll();
     window.scrollTo(0, 0);
-    document.getElementById("dashboard").classList.remove("hidden");
-    document.getElementById("user-info").textContent = `${currentUser.username} | Rep: ${currentUser.reputation} | ${currentUser.tier}`;
+    const dashboard = document.getElementById("dashboard");
+    if (dashboard) dashboard.classList.remove("hidden");
+    const userInfo = document.getElementById("user-info");
+    if (userInfo && currentUser) {
+        userInfo.textContent = `${currentUser.username} | Rep: ${currentUser.reputation} | ${currentUser.tier}`;
+    }
 }
 
 function hideAll() {
     ["frontpage", "landing", "register", "login", "dashboard"].forEach(id => {
-        document.getElementById(id).classList.add("hidden");
+        const el = document.getElementById(id);
+        if (el) el.classList.add("hidden");
     });
 }
 
@@ -342,20 +355,40 @@ function togglePassword(id, el) {
 
 // --- ENTER KEY ---
 document.addEventListener("DOMContentLoaded", function() {
-    document.getElementById("reg-username").addEventListener("keydown", function(e) {
-        if (e.key === "Enter") document.getElementById("reg-password").focus();
-    });
-    document.getElementById("reg-password").addEventListener("keydown", function(e) {
-        if (e.key === "Enter") register();
-    });
-    document.getElementById("login-username").addEventListener("keydown", function(e) {
-        if (e.key === "Enter") document.getElementById("login-password").focus();
-    });
-    document.getElementById("login-password").addEventListener("keydown", function(e) {
-        if (e.key === "Enter") login();
-    });
+    const regUsername = document.getElementById("reg-username");
+    const regPassword = document.getElementById("reg-password");
+    const loginUsername = document.getElementById("login-username");
+    const loginPassword = document.getElementById("login-password");
 
-    showFrontpage();
+    if (regUsername && regPassword) {
+        regUsername.addEventListener("keydown", function(e) {
+            if (e.key === "Enter") regPassword.focus();
+        });
+    }
+
+    if (regPassword) {
+        regPassword.addEventListener("keydown", function(e) {
+            if (e.key === "Enter") register();
+        });
+    }
+
+    if (loginUsername && loginPassword) {
+        loginUsername.addEventListener("keydown", function(e) {
+            if (e.key === "Enter") loginPassword.focus();
+        });
+    }
+
+    if (loginPassword) {
+        loginPassword.addEventListener("keydown", function(e) {
+            if (e.key === "Enter") login();
+        });
+    }
+
+    if (document.getElementById("frontpage")) {
+        showFrontpage();
+    } else if (document.getElementById("landing")) {
+        showLanding();
+    }
 });
 
 const omnisInfo = {
