@@ -9,6 +9,22 @@
 <body>
     <div id="app">
 
+        <!-- Front Page -->
+<div id="frontpage">
+    <div class="frontpage-container">
+        <img src="omnisverum-logo-v3.svg" alt="Omnisverum" class="frontpage-logo">
+        <h1>OMNISVERUM</h1>
+        <p class="frontpage-tagline">Upload truth. Ask anything. Trust the crowd.</p>
+        <div class="frontpage-features">
+            <div class="feature">📚 Knowledge Servers</div>
+            <div class="feature">🤖 AI Answers</div>
+            <div class="feature">👥 Community Trust</div>
+            <div class="feature">🔐 Your Privacy</div>
+        </div>
+        <button onclick="showLanding()" class="frontpage-btn">Enter</button>
+    </div>
+</div>
+
         <!-- Landing Page -->
         <div id="landing">
             <div class="logo-container">
@@ -108,6 +124,20 @@
             <p><strong>6. Cookies</strong><br>Omnisverum does not use tracking cookies.</p>
         </div>
         <button onclick="closeModal('privacy-modal')">Close</button>
+    </div>
+</div>
+<!-- Omnisverum Info Chatbot -->
+<div id="info-chatbot" class="hidden">
+    <div class="chatbot-container">
+        <div class="chatbot-header">
+            <h3>Ask about Omnisverum</h3>
+            <span onclick="closeChatbot()" style="cursor:pointer;color:#555;">✕</span>
+        </div>
+        <div id="chatbot-messages" class="chatbot-messages"></div>
+        <div class="chatbot-input">
+            <input type="text" id="chatbot-question" placeholder="Ask me anything..." onkeypress="if(event.key==='Enter')askChatbot()">
+            <button onclick="askChatbot()">Send</button>
+        </div>
     </div>
 </div>
 </body>

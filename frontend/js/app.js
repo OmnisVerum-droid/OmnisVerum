@@ -6,6 +6,7 @@ let currentServer = null;
 function showLanding() {
     hideAll();
     document.getElementById("landing").classList.remove("hidden");
+    document.getElementById("frontpage").classList.add("hidden");
 }
 
 function showRegister() {
@@ -34,6 +35,7 @@ function logout() {
     currentUser = null;
     currentServer = null;
     showLanding();
+    localStorage.removeItem('omnisverum_user');
 }
 
 // --- AUTH ---
@@ -99,6 +101,7 @@ async function login() {
         };
         showDashboard();
         showServers();
+        loginSuccess();
     } else {
         alert(data.detail || "Login failed");
     }
@@ -345,4 +348,67 @@ document.addEventListener("DOMContentLoaded", function() {
 
     showLanding();
 });
+
+const omnisInfo = {
+    "what is omnisverum": "Omnisverum is a crowd-sourced knowledge platform where users create servers, upload information, and an AI answers questions based on that data. Tagline: Upload truth. Ask anything. Trust the crowd.",
+    "how does it work": "Users create isolated knowledge servers, upload text information, and others ask questions. The AI uses semantic search (RAG) to understand questions and find relevant uploaded content, then answers intelligently even if wording doesn't exactly match.",
+    "what is a server": "A server is an isolated knowledge base. You create one, invite people to join, and together you build a shared knowledge repository. Servers can be public (anyone joins), invite-only (need link), or private (hidden).",
+    "reputation system": "Your reputation increases when your uploads are useful. Higher reputation (1000+) gives you more permissions like posting bounties and moderating. Negative reputation locks your account.",
+    "can i be anonymous": "Yes! When uploading or posting, you can choose anonymous or named. Your identity is always stored privately for safety, but you control what others see.",
+    "what is a bounty": "Post a question with a reputation point reward. The first person to upload verified information wins the bounty points.",
+    "how is it different from wikipedia": "Wikipedia stores facts. Omnisverum stores any information communities want to share — opinions, experiences, discussions. It's crowd-sourced with trust weighting.",
+    "is it safe": "Yes. The system has reputation weighting (trusted users' info trusted more), moderation, reporting, blacklists, and admin controls. Illegal content is instantly removed.",
+    "can i delete my account": "Yes, you can request full data deletion which removes your account and uploads.",
+    "what are the tiers": "Newcomer (0-50 rep, read only), Member (51-200, upload+vote), Trusted (201-500), Verified (501-1000, can post bounties), Authority (1000+, can moderate). Negative rep locks you.",
+    "how do i report content": "Click the Report button on any upload and explain why. Our moderation system reviews reports.",
+    "what happens to my data": "Your username and uploads are stored. Your password is encrypted. Your user ID is never publicly shown. You can request deletion anytime.",
+    "default": "I'm here to help explain Omnisverum! Ask about servers, reputation, safety, bounties, or how it works.",
+};
+
+function openChatbot() {
+    document.getElementById("info-chatbot").classList.remove("hidden");
+    document.getElementById("chatbot-question").focus();
+}
+
+function closeChatbot() {
+    document.getElementById("info-chatbot").classList.add("hidden");
+}
+
+function askChatbot() {
+    const input = document.getElementById("chatbot-question");
+    const question = input.value.toLowerCase().trim();
+    if (!question) return;
+
+    const messagesDiv = document.getElementById("chatbot-messages");
+    
+    messagesDiv.innerHTML += `<div class="chatbot-message user">${question}</div>`;
+    
+    let answer = omnisInfo["default"];
+    for (let key in omnisInfo) {
+        if (question.includes(key)) {
+            answer = omnisInfo[key];
+            break;
+        }
+    }
+    
+    messagesDiv.innerHTML += `<div class="chatbot-message bot">${answer}</div>`;
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    input.value = "";
+}
+
+// --- AUTO LOGIN ---
+window.addEventListener('load', function() {
+    const saved = localStorage.getItem('omnisverum_user');
+    if (saved) {
+        currentUser = JSON.parse(saved);
+        showDashboard();
+        showServers();
+    }
+});
+
+// Save user on login
+function loginSuccess() {
+    localStorage.setItem('omnisverum_user', JSON.stringify(currentUser));
+}
+
 

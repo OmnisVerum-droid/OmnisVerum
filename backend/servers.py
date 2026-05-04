@@ -95,7 +95,7 @@ def create_invite(server_id: str, user_id: str, expires_hours: int = None, db: S
     db.commit()
     expiry_text = f"{expires_hours} hours" if expires_hours else "Never"
     return {
-        "invite_link": f"http://127.0.0.1:8000/servers/join/invite/{invite.id}",
+        "invite_link": f"https://omnisverum.onrender.com/servers/join/invite/{invite.id}",
         "expires": expiry_text
     }
 

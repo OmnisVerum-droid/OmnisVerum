@@ -314,3 +314,160 @@ textarea:focus {
 .password-wrap span:hover {
     color: #ffffff;
 }
+
+/* Chatbot */
+#info-chatbot {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 350px;
+    max-height: 500px;
+    background: #111111;
+    border: 1px solid #333333;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    z-index: 999;
+}
+
+#info-chatbot.hidden {
+    display: none;
+}
+
+.chatbot-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.chatbot-header {
+    background: #000;
+    border-bottom: 1px solid #333;
+    padding: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.chatbot-header h3 {
+    margin: 0;
+    font-size: 14px;
+    letter-spacing: 1px;
+}
+
+.chatbot-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+    font-size: 12px;
+}
+
+.chatbot-message {
+    margin-bottom: 10px;
+    padding: 8px;
+    border-radius: 4px;
+    line-height: 1.4;
+}
+
+.chatbot-message.user {
+    background: #222;
+    color: #fff;
+    text-align: right;
+}
+
+.chatbot-message.bot {
+    background: #1a1a1a;
+    color: #aaa;
+}
+
+.chatbot-input {
+    display: flex;
+    gap: 8px;
+    padding: 10px;
+    border-top: 1px solid #333;
+}
+
+.chatbot-input input {
+    flex: 1;
+    background: #000;
+    border: 1px solid #333;
+    color: #fff;
+    padding: 8px;
+    font-size: 12px;
+}
+
+.chatbot-input button {
+    background: #222;
+    color: #fff;
+    border: 1px solid #333;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+/* Front Page */
+#frontpage {
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800"><rect fill="%23000000" width="1200" height="800"/></svg>');
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+.frontpage-container {
+    text-align: center;
+}
+
+.frontpage-logo {
+    width: 180px;
+    margin-bottom: 30px;
+}
+
+#frontpage h1 {
+    font-size: 48px;
+    letter-spacing: 8px;
+    margin-bottom: 12px;
+    font-weight: 700;
+}
+
+.frontpage-tagline {
+    font-size: 16px;
+    color: #888888;
+    letter-spacing: 2px;
+    margin-bottom: 40px;
+}
+
+.frontpage-features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin: 40px 0;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.feature {
+    background: #111111;
+    border: 1px solid #222222;
+    padding: 20px;
+    font-size: 14px;
+    color: #999999;
+}
+
+.frontpage-btn {
+    background: #ffffff;
+    color: #000000;
+    border: none;
+    padding: 14px 40px;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    cursor: pointer;
+    margin-top: 30px;
+    font-family: Georgia, serif;
+}
+
+.frontpage-btn:hover {
+    background: #cccccc;
+}
