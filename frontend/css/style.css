@@ -522,3 +522,206 @@ textarea:focus {
     margin-bottom: 10px;
     color: #c8c8c8;
 }
+
+/* Modernized UI System */
+body.theme-dark {
+    --bg: #080b12;
+    --bg-elevated: #0f1522;
+    --surface: #121a2a;
+    --surface-2: #1a2336;
+    --text: #edf2ff;
+    --muted: #9faccc;
+    --accent: #6f8cff;
+    --accent-2: #60d4ff;
+    --success: #47d18c;
+    --danger: #ff7f90;
+    --border: #27324b;
+}
+
+body.theme-light {
+    --bg: #f4f7ff;
+    --bg-elevated: #ffffff;
+    --surface: #ffffff;
+    --surface-2: #eef2ff;
+    --text: #1d2433;
+    --muted: #58637a;
+    --accent: #4f67ff;
+    --accent-2: #06b6d4;
+    --success: #0f9b58;
+    --danger: #d14a61;
+    --border: #d8def0;
+}
+
+body.theme-aurora {
+    --bg: #071113;
+    --bg-elevated: #0e1b1f;
+    --surface: #112229;
+    --surface-2: #142a33;
+    --text: #ecffff;
+    --muted: #8fb3bb;
+    --accent: #00b8d9;
+    --accent-2: #7b61ff;
+    --success: #2dd4bf;
+    --danger: #ff8fab;
+    --border: #21414c;
+}
+
+body {
+    background: radial-gradient(circle at 20% 0%, color-mix(in oklab, var(--accent) 20%, transparent), transparent 35%), var(--bg);
+    color: var(--text);
+    font-family: Inter, "Segoe UI", Georgia, serif;
+    transition: background 0.25s ease, color 0.25s ease;
+}
+
+#app {
+    max-width: 1040px;
+    padding: 22px;
+}
+
+.theme-toggle {
+    position: fixed;
+    top: 14px;
+    right: 14px;
+    z-index: 2500;
+    border-radius: 999px;
+    padding: 8px 14px;
+    font-size: 12px;
+    letter-spacing: 0.3px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+}
+
+.theme-toggle:hover {
+    border-color: var(--accent);
+}
+
+button {
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-weight: 600;
+}
+
+button:hover {
+    background: var(--surface-2);
+    border-color: var(--accent);
+}
+
+.frontpage-container,
+#landing,
+#register,
+#login,
+#dashboard,
+.profile-card,
+.server-card,
+.upload-card,
+.wiki-result {
+    background: color-mix(in oklab, var(--bg-elevated) 90%, transparent);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.18);
+}
+
+.frontpage-container {
+    padding: 42px 36px;
+}
+
+#landing,
+#register,
+#login {
+    padding: 30px;
+}
+
+#frontpage h1 {
+    font-size: 52px;
+    color: var(--text);
+}
+
+.frontpage-tagline {
+    color: var(--accent-2);
+    font-weight: 600;
+}
+
+.frontpage-description,
+.tagline,
+label,
+#user-info {
+    color: var(--muted);
+}
+
+.feature {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+}
+
+.frontpage-btn {
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #fff;
+    border: none;
+    border-radius: 14px;
+}
+
+.frontpage-btn:hover {
+    filter: brightness(1.07);
+}
+
+nav {
+    position: sticky;
+    top: 12px;
+    z-index: 10;
+    background: color-mix(in oklab, var(--bg-elevated) 95%, transparent);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px;
+}
+
+input[type="text"],
+input[type="password"],
+textarea,
+select {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 10px;
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus,
+textarea:focus,
+select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 22%, transparent);
+}
+
+.app-message {
+    background: var(--surface);
+    border-color: var(--border);
+    color: var(--text);
+}
+
+.app-message-success {
+    color: var(--success);
+}
+
+.app-message-error {
+    color: var(--danger);
+}
+
+.chatbot-header,
+.chatbot-input {
+    background: var(--surface);
+    border-color: var(--border);
+}
+
+.chatbot-message.user {
+    background: color-mix(in oklab, var(--accent) 30%, var(--surface));
+}
+
+.chatbot-message.bot {
+    background: var(--surface-2);
+    color: var(--text);
+}

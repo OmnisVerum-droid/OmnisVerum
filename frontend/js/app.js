@@ -1,6 +1,12 @@
 const API = "https://omnisverum.onrender.com";
 let currentUser = null;
 let currentServer = null;
+const THEMES = ["dark", "light", "aurora"];
+const THEME_LABELS = {
+    dark: "Dark",
+    light: "Light",
+    aurora: "Aurora"
+};
 
 // --- APP FEEDBACK ---
 function showAppMessage(text, type = "info") {
@@ -20,6 +26,27 @@ function escapeHtml(value) {
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#39;");
+}
+
+// --- THEMES ---
+function applyTheme(themeName) {
+    const selected = THEMES.includes(themeName) ? themeName : "dark";
+    document.body.classList.remove("theme-dark", "theme-light", "theme-aurora");
+    document.body.classList.add(`theme-${selected}`);
+    localStorage.setItem("omnisverum_theme", selected);
+
+    const button = document.getElementById("theme-toggle");
+    if (button) {
+        button.textContent = `Theme: ${THEME_LABELS[selected]}`;
+    }
+}
+
+function cycleTheme() {
+    const current = localStorage.getItem("omnisverum_theme") || "dark";
+    const idx = THEMES.indexOf(current);
+    const next = THEMES[(idx + 1) % THEMES.length];
+    applyTheme(next);
+    showAppMessage(`Switched to ${THEME_LABELS[next]} mode.`, "info");
 }
 
 // --- NAVIGATION ---
@@ -458,6 +485,8 @@ function togglePassword(id, el) {
 
 // --- ENTER KEY ---
 document.addEventListener("DOMContentLoaded", function() {
+    applyTheme(localStorage.getItem("omnisverum_theme") || "dark");
+
     const regUsername = document.getElementById("reg-username");
     const regPassword = document.getElementById("reg-password");
     const loginUsername = document.getElementById("login-username");
@@ -543,6 +572,12 @@ function askChatbot() {
 
 // --- AUTO LOGIN ---
 window.addEventListener('load', function() {
+    if (document.getElementById("frontpage")) {
+        // Keep index focused on onboarding; do not auto-open auth/dashboard.
+        showFrontpage();
+        return;
+    }
+
     const saved = localStorage.getItem('omnisverum_user');
     if (saved) {
         currentUser = JSON.parse(saved);

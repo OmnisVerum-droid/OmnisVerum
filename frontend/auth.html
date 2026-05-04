@@ -8,16 +8,17 @@
 </head>
 <body>
     <div id="app-message" class="app-message hidden" role="status" aria-live="polite"></div>
+    <button id="theme-toggle" class="theme-toggle" onclick="cycleTheme()" aria-label="Switch color mode">Theme: Dark</button>
     <div id="app">
         <!-- Landing Page -->
         <div id="landing">
             <div class="logo-container">
                 <img src="../omnisverum-logo-v3.svg" alt="Omnisverum Logo" class="logo">
             </div>
-            <h1 class="tagline">Upload . Ask anything. Trust the crowd.</h1>
+            <h1 class="tagline">Crowd knowledge, AI answers per server.</h1>
             <p class="frontpage-description">
-                Omnisverum helps communities collect practical knowledge in one place, then uses AI to answer questions
-                from those shared uploads with transparency and reputation-based trust.
+                Every Omnisverum server is an independent knowledge space with its own AI assistant.
+                Create an account to build, upload, and query trusted community knowledge fast.
             </p>
             <div class="auth-buttons">
                 <button onclick="showRegister()">Create Account</button>
