@@ -14,6 +14,7 @@ import reports
 import servers
 import uploads
 from database import Base, engine
+from middleware import ErrorHandlingMiddleware, RateLimitMiddleware
 
 Base.metadata.create_all(bind=engine)
 
@@ -27,6 +28,9 @@ else:
     _allow_origins = ["*"]
     _allow_credentials = False
 
+# Add middleware
+app.add_middleware(ErrorHandlingMiddleware)
+app.add_middleware(RateLimitMiddleware, calls=100, period=60)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_allow_origins,

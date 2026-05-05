@@ -99,7 +99,7 @@ def register(body: RegisterBody, db: Session = Depends(get_db)):
         tos_agreed=body.tos_agreed,
     )
     db.add(user)
-    db.add(UserProfile(user_id=user.id, display_name=body.username, bio="", is_anonymous=False))
+    db.add(UserProfile(id=str(uuid.uuid4()), user_id=user.id, display_name=body.username, bio="", is_anonymous=False))
     db.commit()
     return {"message": "Account created", "token": create_token(user.id)}
 
@@ -113,7 +113,7 @@ def login(body: LoginBody, db: Session = Depends(get_db)):
         raise HTTPException(status_code=403, detail="Account locked")
     profile = db.query(UserProfile).filter(UserProfile.user_id == user.id).first()
     if not profile:
-        profile = UserProfile(user_id=user.id, display_name=user.username, bio="", is_anonymous=False)
+        profile = UserProfile(id=str(uuid.uuid4()), user_id=user.id, display_name=user.username, bio="", is_anonymous=False)
         db.add(profile)
         db.commit()
     return {
@@ -133,7 +133,7 @@ def get_profile(user_id: str = Depends(get_current_user_id), db: Session = Depen
 
     profile = db.query(UserProfile).filter(UserProfile.user_id == user_id).first()
     if not profile:
-        profile = UserProfile(user_id=user_id, display_name=user.username, bio="", is_anonymous=False)
+        profile = UserProfile(id=str(uuid.uuid4()), user_id=user_id, display_name=user.username, bio="", is_anonymous=False)
         db.add(profile)
         db.commit()
     return {
@@ -158,7 +158,7 @@ def update_profile(
 
     profile = db.query(UserProfile).filter(UserProfile.user_id == user_id).first()
     if not profile:
-        profile = UserProfile(user_id=user_id, display_name=user.username, bio="", is_anonymous=False)
+        profile = UserProfile(id=str(uuid.uuid4()), user_id=user_id, display_name=user.username, bio="", is_anonymous=False)
         db.add(profile)
 
     cleaned_name = body.display_name.strip()

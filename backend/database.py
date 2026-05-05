@@ -85,3 +85,57 @@ class Invite(Base):
     created_by = Column(String, ForeignKey("users.id"))
     expires_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class Reputation(Base):
+    __tablename__ = "reputations"
+    
+    id = Column(String, primary_key=True)
+    from_user_id = Column(String, ForeignKey("users.id"))
+    to_user_id = Column(String, ForeignKey("users.id"))
+    server_id = Column(String, ForeignKey("servers.id"))
+    value = Column(Integer)  # +1 or -1
+    reason = Column(String, default="")
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class Bounty(Base):
+    __tablename__ = "bounties"
+    
+    id = Column(String, primary_key=True)
+    server_id = Column(String, ForeignKey("servers.id"))
+    created_by = Column(String, ForeignKey("users.id"))
+    title = Column(String)
+    description = Column(String)
+    reward_amount = Column(Integer, default=0)
+    is_completed = Column(Boolean, default=False)
+    completed_by = Column(String, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    completed_at = Column(DateTime, nullable=True)
+
+
+class Blacklist(Base):
+    __tablename__ = "blacklists"
+    
+    id = Column(String, primary_key=True)
+    user_id = Column(String, ForeignKey("users.id"))  # Who owns the blacklist
+    blocked_user_id = Column(String, ForeignKey("users.id"))  # Who is blocked
+    server_id = Column(String, ForeignKey("servers.id"), nullable=True)  # Optional server-specific blacklist
+    reason = Column(String, default="")
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class Report(Base):
+    __tablename__ = "reports"
+    
+    id = Column(String, primary_key=True)
+    reporter_id = Column(String, ForeignKey("users.id"))
+    reported_user_id = Column(String, ForeignKey("users.id"), nullable=True)
+    reported_upload_id = Column(String, ForeignKey("uploads.id"), nullable=True)
+    server_id = Column(String, ForeignKey("servers.id"))
+    reason = Column(String)
+    description = Column(String)
+    is_resolved = Column(Boolean, default=False)
+    resolved_by = Column(String, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    resolved_at = Column(DateTime, nullable=True)

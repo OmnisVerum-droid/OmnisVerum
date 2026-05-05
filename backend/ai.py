@@ -1,10 +1,59 @@
+import os
+import uuid
+from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+import chromadb
+from sentence_transformers import SentenceTransformer
+import numpy as np
 
 from database import Server, ServerMember, Upload, get_db
 from auth import get_current_user_id
 
 router = APIRouter()
+
+# Initialize ChromaDB client
+chroma_client = chromadb.PersistentClient(path="./chroma_db")
+embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+
+
+def get_or_create_collection(server_id: str):
+    """Get or create a ChromaDB collection for a server."""
+    try:
+        collection = chroma_client.get_collection(name=f"server_{server_id}")
+    except:
+        collection = chroma_client.create_collection(
+            name=f"server_{server_id}",
+            metadata={"hnsw:space": "cosine"}
+        )
+    return collection
+
+
+def update_server_embeddings(server_id: str, db: Session):
+    """Update ChromaDB embeddings for all uploads in a server."""
+    collection = get_or_create_collection(server_id)
+    uploads = db.query(Upload).filter(Upload.server_id == server_id).all()
+    
+    if not uploads:
+        return
+    
+    # Clear existing embeddings
+    try:
+        collection.delete()
+    except:
+        pass
+    
+    # Add new embeddings
+    documents = [upload.content for upload in uploads]
+    metadatas = [{"upload_id": upload.id, "user_id": upload.user_id} for upload in uploads]
+    ids = [upload.id for upload in uploads]
+    
+    if documents:
+        collection.add(
+            documents=documents,
+            metadatas=metadatas,
+            ids=ids
+        )
 
 
 @router.post("/ask")
@@ -15,7 +64,7 @@ def ask_ai(
     user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ):
-    """Ask the AI a question based on server uploads."""
+    """Ask the AI a question based on server uploads using semantic search."""
     if not question or not question.strip():
         raise HTTPException(status_code=400, detail="Question cannot be empty")
     
@@ -41,21 +90,58 @@ def ask_ai(
             "sources": []
         }
     
-    # Simple RAG: match question keywords with upload content
-    question_lower = question.lower()
-    relevant_uploads = [
-        u for u in uploads
-        if any(word in u.content.lower() for word in question_lower.split())
-    ]
+    # Update embeddings if needed
+    collection = get_or_create_collection(server_id)
     
-    if not relevant_uploads:
-        relevant_uploads = uploads[:3]  # Return first 3 uploads if no match
-    
-    # Generate a simple answer from relevant uploads
-    answer = f"Based on the knowledge in {server.name}, I found the following relevant information:\n\n"
-    answer += "\n\n".join([u.content[:200] for u in relevant_uploads[:3]])
-    
-    return {
-        "answer": answer,
-        "sources": [u.id for u in relevant_uploads[:3]]
-    }
+    try:
+        # Perform semantic search
+        results = collection.query(
+            query_texts=[question],
+            n_results=5
+        )
+        
+        if not results['documents'][0]:
+            # Fallback to recent uploads if no results
+            relevant_uploads = uploads[:3]
+        else:
+            # Get upload objects from results
+            upload_ids = results['metadatas'][0]
+            relevant_uploads = []
+            for metadata in upload_ids:
+                upload = db.query(Upload).filter(Upload.id == metadata['upload_id']).first()
+                if upload:
+                    relevant_uploads.append(upload)
+        
+        if not relevant_uploads:
+            relevant_uploads = uploads[:3]
+        
+        # Generate answer from relevant uploads
+        answer = f"Based on the knowledge in {server.name}, here's what I found:\n\n"
+        for i, upload in enumerate(relevant_uploads[:3], 1):
+            answer += f"{i}. {upload.content[:300]}...\n\n"
+        
+        return {
+            "answer": answer,
+            "sources": [u.id for u in relevant_uploads[:3]],
+            "search_type": "semantic"
+        }
+        
+    except Exception as e:
+        # Fallback to basic matching if semantic search fails
+        question_lower = question.lower()
+        relevant_uploads = [
+            u for u in uploads
+            if any(word in u.content.lower() for word in question_lower.split())
+        ]
+        
+        if not relevant_uploads:
+            relevant_uploads = uploads[:3]
+        
+        answer = f"Based on the knowledge in {server.name}, I found this information:\n\n"
+        answer += "\n\n".join([u.content[:200] for u in relevant_uploads[:3]])
+        
+        return {
+            "answer": answer,
+            "sources": [u.id for u in relevant_uploads[:3]],
+            "search_type": "keyword_fallback"
+        }

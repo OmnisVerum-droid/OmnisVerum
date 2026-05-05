@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from database import Upload, User, UserProfile, Server, ServerMember, get_db
 from auth import get_current_user_id
+import ai
 
 router = APIRouter()
 
@@ -42,6 +43,13 @@ def upload_text(
     )
     db.add(upload)
     db.commit()
+    
+    # Update embeddings for semantic search
+    try:
+        ai.update_server_embeddings(server_id, db)
+    except Exception as e:
+        # Don't fail the upload if embedding update fails
+        pass
     
     return {"upload_id": upload.id, "message": "Content uploaded successfully"}
 
