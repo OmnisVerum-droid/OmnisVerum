@@ -1,4 +1,6 @@
-const API = "https://omnisverum.onrender.com";
+const API = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+    ? "http://localhost:8000"
+    : "https://omnisverum.onrender.com";
 let currentUser = null;
 let currentServer = null;
 const THEMES = ["dark", "light", "aurora"];
