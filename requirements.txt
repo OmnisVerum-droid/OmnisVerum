@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+chromadb
+sentence-transformers
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart
+sqlalchemy
+python-dotenv
+torch
