@@ -2,7 +2,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from database import Upload, User, UserProfile, Server, ServerMember, get_db
+from database import Upload, User, Server, ServerMember, get_db
 from auth import get_current_user_id
 import ai
 
@@ -13,7 +13,6 @@ router = APIRouter()
 def upload_text(
     server_id: str,
     content: str,
-    is_anonymous: bool = False,
     user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ):
@@ -39,7 +38,6 @@ def upload_text(
         server_id=server_id,
         user_id=user_id,
         content=content.strip()[:5000],
-        is_anonymous=is_anonymous,
     )
     db.add(upload)
     db.commit()
@@ -66,14 +64,11 @@ def get_uploads(server_id: str, db: Session = Depends(get_db)):
     result = []
     for u in uploads:
         user = db.query(User).filter(User.id == u.user_id).first()
-        profile = db.query(UserProfile).filter(UserProfile.user_id == u.user_id).first()
-        
-        display_name = "Anonymous" if u.is_anonymous else (profile.display_name if profile else user.username)
         
         result.append({
             "id": u.id,
             "content": u.content,
-            "display_name": display_name,
+            "username": user.username if user else "Unknown",
             "timestamp": u.timestamp.strftime("%Y-%m-%d %H:%M"),
         })
     

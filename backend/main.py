@@ -3,14 +3,8 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-import admin
 import ai
 import auth
-import blacklist
-import bounty
-import news
-import reputation
-import reports
 import servers
 import uploads
 from database import Base, engine
@@ -39,16 +33,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(auth.router)
-app.include_router(servers.router)
-app.include_router(uploads.router)
-app.include_router(ai.router)
-app.include_router(reputation.router)
-app.include_router(blacklist.router)
-app.include_router(bounty.router)
-app.include_router(reports.router)
-app.include_router(admin.router)
-app.include_router(news.router)
+app.include_router(auth.router, prefix="/auth", tags=["auth"])
+app.include_router(servers.router, prefix="/servers", tags=["servers"])
+app.include_router(uploads.router, prefix="/uploads", tags=["uploads"])
+app.include_router(ai.router, prefix="/search", tags=["search"])
 
 @app.get("/")
 def read_root():

@@ -2,11 +2,9 @@ fastapi
 uvicorn
 chromadb
 sentence-transformers
-groq
 python-jose[cryptography]
 passlib[bcrypt]
 python-multipart
 sqlalchemy
-bcrypt
 python-dotenv
-httpx
+torch

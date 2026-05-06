@@ -9,7 +9,7 @@ from auth import get_current_user_id
 router = APIRouter()
 
 
-@router.post("/servers/create")
+@router.post("/create")
 def create_server(
     name: str,
     description: str,
@@ -45,7 +45,7 @@ def create_server(
     return {"server_id": server.id, "name": server.name}
 
 
-@router.get("/servers")
+@router.get("/")
 def list_servers(db: Session = Depends(get_db)):
     """List all public servers."""
     servers = db.query(Server).filter(Server.is_public == True).all()
@@ -61,7 +61,7 @@ def list_servers(db: Session = Depends(get_db)):
     ]
 
 
-@router.post("/servers/join")
+@router.post("/join")
 def join_server(
     server_id: str,
     user_id: str = Depends(get_current_user_id),
@@ -92,7 +92,7 @@ def join_server(
     return {"message": "Successfully joined server"}
 
 
-@router.post("/servers/invite/create")
+@router.post("/invite/create")
 def create_invite(
     server_id: str,
     expires_hours: int = None,
@@ -131,7 +131,7 @@ def create_invite(
     }
 
 
-@router.post("/servers/join-by-invite")
+@router.post("/join-by-invite")
 def join_by_invite(
     invite_id: str,
     user_id: str = Depends(get_current_user_id),

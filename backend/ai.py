@@ -1,28 +1,45 @@
 import os
 import uuid
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 import chromadb
+import torch
 from sentence_transformers import SentenceTransformer
-import numpy as np
 
 from database import Server, ServerMember, Upload, get_db
 from auth import get_current_user_id
 
 router = APIRouter()
 
-# Initialize ChromaDB client
-chroma_client = chromadb.PersistentClient(path="./chroma_db")
-embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+# Global variables for lazy loading
+_chroma_client: Optional[chromadb.PersistentClient] = None
+_embedding_model = None
+
+def get_chroma_client():
+    """Get or create ChromaDB client with lazy loading."""
+    global _chroma_client
+    if _chroma_client is None:
+        _chroma_client = chromadb.PersistentClient(path="./chroma_db")
+    return _chroma_client
+
+def get_embedding_model():
+    """Get or create embedding model with lazy loading and CPU optimization."""
+    global _embedding_model
+    if _embedding_model is None:
+        # Use lightweight model and force CPU usage
+        device = "cpu"
+        _embedding_model = SentenceTransformer('paraphrase-MiniLM-L3-v2', device=device)
+    return _embedding_model
 
 
 def get_or_create_collection(server_id: str):
     """Get or create a ChromaDB collection for a server."""
+    client = get_chroma_client()
     try:
-        collection = chroma_client.get_collection(name=f"server_{server_id}")
+        collection = client.get_collection(name=f"server_{server_id}")
     except:
-        collection = chroma_client.create_collection(
+        collection = client.create_collection(
             name=f"server_{server_id}",
             metadata={"hnsw:space": "cosine"}
         )
@@ -43,17 +60,20 @@ def update_server_embeddings(server_id: str, db: Session):
     except:
         pass
     
-    # Add new embeddings
-    documents = [upload.content for upload in uploads]
-    metadatas = [{"upload_id": upload.id, "user_id": upload.user_id} for upload in uploads]
-    ids = [upload.id for upload in uploads]
-    
-    if documents:
-        collection.add(
-            documents=documents,
-            metadatas=metadatas,
-            ids=ids
-        )
+    # Process in batches to optimize memory
+    batch_size = 8
+    for i in range(0, len(uploads), batch_size):
+        batch = uploads[i:i+batch_size]
+        documents = [upload.content for upload in batch]
+        metadatas = [{"upload_id": upload.id, "user_id": upload.user_id} for upload in batch]
+        ids = [upload.id for upload in batch]
+        
+        if documents:
+            collection.add(
+                documents=documents,
+                metadatas=metadatas,
+                ids=ids
+            )
 
 
 @router.post("/ask")
